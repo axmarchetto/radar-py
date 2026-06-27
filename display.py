@@ -157,6 +157,38 @@ def dist_from_ref(ac: dict, ref_lat: float, ref_lon: float) -> float:
     return haversine_km(ref_lat, ref_lon, ac["lat"], ac["lon"])
 
 
+def closest_approach(ac: dict, ref_lat: float, ref_lon: float) -> tuple[float, float] | None:
+    """Return (minutes_to_closest, closest_dist_km) or None if data missing / flying away."""
+    lat   = ac.get("lat")
+    lon   = ac.get("lon")
+    gs    = ac.get("gs")      # knots
+    track = ac.get("track")   # degrees from North
+    if None in (lat, lon, gs, track) or gs < 10:
+        return None
+
+    lat_rad = math.radians(lat)
+    lat_scale = 111.32                          # km per degree latitude
+    lon_scale = 111.32 * math.cos(lat_rad)     # km per degree longitude
+
+    d_north = (ref_lat - lat) * lat_scale
+    d_east  = (ref_lon - lon) * lon_scale
+
+    track_rad = math.radians(track)
+    v_north = math.cos(track_rad)
+    v_east  = math.sin(track_rad)
+
+    t_km = d_north * v_north + d_east * v_east   # km along track to closest approach
+    if t_km <= 0:
+        return None   # aircraft is flying away
+
+    gs_kmh    = gs * 1.852
+    minutes   = t_km / gs_kmh * 60
+    perp_sq   = d_north**2 + d_east**2 - t_km**2
+    min_dist  = math.sqrt(max(0.0, perp_sq))
+
+    return minutes, min_dist
+
+
 # ── Font cache ────────────────────────────────────────────────────────────────
 
 _fonts: dict[tuple, pygame.font.Font] = {}
@@ -303,7 +335,7 @@ def find_principal_aircraft(aircraft_list: list[dict], config: dict) -> dict | N
     return None
 
 
-def draw_strip3_airports(surf: pygame.Surface, principal: dict | None) -> None:
+def draw_strip3_airports(surf: pygame.Surface, principal: dict | None, config: dict) -> None:
     """Strip 4 (index 3): departure/arrival in left half; right half reserved."""
     y0    = 3 * STRIP_H
     mid_y = y0 + STRIP_H // 2
@@ -329,7 +361,7 @@ def draw_strip3_airports(surf: pygame.Surface, principal: dict | None) -> None:
     dep_city = (orig.get("municipality") or "").strip()
 
     blit_text(surf, dep_iata if dep_iata not in ("?", "...") else "—",
-              MARGIN_X, y0 + 8, size=30, bold=True, color=WHITE)
+              MARGIN_X, y0 + 8, size=30, color=WHITE)
     if dep_name and dep_name != "?":
         blit_text(surf, dep_name[:22], MARGIN_X, y0 + 42, size=13, color=LGRAY)
     if dep_city and dep_city != "?":
@@ -342,11 +374,26 @@ def draw_strip3_airports(surf: pygame.Surface, principal: dict | None) -> None:
 
     arr_right = COL_MID - MARGIN_X
     blit_text(surf, arr_iata if arr_iata not in ("?", "...") else "—",
-              arr_right, y0 + 8, size=30, bold=True, color=WHITE, align="right")
+              arr_right, y0 + 8, size=30, color=WHITE, align="right")
     if arr_name and arr_name != "?":
         blit_text(surf, arr_name[:22], arr_right, y0 + 42, size=13, color=LGRAY, align="right")
     if arr_city and arr_city != "?":
         blit_text(surf, arr_city, arr_right, y0 + 57, size=13, color=CYAN, align="right")
+
+    # ── Right column: closest approach to reference point ──
+    ref_name = config.get("Punto_di_riferimento", "Casa")
+    ca = closest_approach(ac, config["Punto_rif_lat"], config["Punto_rif_lon"])
+    rx = COL_MID + MARGIN_X
+    rcx = COL_MID + (W - COL_MID) // 2
+    blit_text(surf, f"sorvolo {ref_name}", rcx, y0 + 8, size=13, color=LGRAY, align="center")
+    if ca:
+        mins, dist_km = ca
+        h, m = divmod(int(mins), 60)
+        time_str = f"{h}h {m:02d}m" if h else f"{m} min"
+        blit_text(surf, time_str, rcx, y0 + 28, size=26, color=CYAN, align="center")
+        blit_text(surf, f"dist min {dist_km:.1f} km", rcx, y0 + 57, size=13, color=LGRAY, align="center")
+    else:
+        blit_text(surf, "—", rcx, y0 + 28, size=26, color=GRAY, align="center")
 
 
 def _track_to_compass(deg: float) -> str:
@@ -412,7 +459,7 @@ def draw_strip4_flightdata(surf: pygame.Surface, principal: dict | None,
     for i, (label, value, color) in enumerate(boxes):
         cx = i * col_w + col_w // 2
         blit_text(surf, label, cx, y0 + 10, size=lbl_s, color=LGRAY, align="center")
-        blit_text(surf, value, cx, y0 + 30, size=val_s, bold=True, color=color, align="center")
+        blit_text(surf, value, cx, y0 + 30, size=val_s, color=color, align="center")
 
         # vertical separator between boxes
         if i > 0:
@@ -591,7 +638,7 @@ def main() -> None:
 
         draw_strip0_header(surf, config, n_total, n_visible, now_str, blink_on)
         draw_strip23_closest(surf, principal, config)
-        draw_strip3_airports(surf, principal)
+        draw_strip3_airports(surf, principal, config)
         draw_strip4_flightdata(surf, principal, config)
         draw_strip5_progress(surf, principal)
         draw_strip67_aircraft(surf, aircraft_list, config)
