@@ -1,0 +1,13 @@
+{
+    "Punto_di_riferimento": "Casa",
+    "Punto_rif_lat": 45.0000,
+    "Punto_rif_lon": 7.0000,
+    "distanza_rilevamento": 100,
+    "distanza_max_princ": 50,
+    "temperatura_max_rpi": 60,
+    "ora_inizio": "07:00",
+    "ora_fine": "23:00",
+    "pir_timeout_min": 5,
+    "gpio_fan": 18,
+    "gpio_pir": 17
+}

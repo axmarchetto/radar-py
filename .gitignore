@@ -5,3 +5,4 @@ __pycache__/
 airports.csv
 logos/
 *.png
+config.json
