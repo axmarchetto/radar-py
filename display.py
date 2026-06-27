@@ -17,7 +17,7 @@ import routes
 from main import load_config, load_aircraft, haversine_km
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-BLACK  = (220, 240, 255)   # background: light azure
+BLACK  = (200, 222, 240)   # background: soft azure
 WHITE  = ( 15,  30,  60)   # main text: dark navy
 GRAY   = (120, 150, 190)   # dividers / secondary elements
 LGRAY  = ( 70, 100, 150)   # secondary text
