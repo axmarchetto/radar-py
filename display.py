@@ -218,19 +218,19 @@ def draw_strip0_header(surf: pygame.Surface, config: dict,
 
 def draw_strip23_closest(surf: pygame.Surface, principal: dict | None,
                          config: dict) -> None:
-    """Strips 2+3 merged (150 px): closest aircraft with airline logo."""
+    """Strips 2+3 merged (150 px): 3-column layout — logo | flight number | airline+type."""
+    panel_y = CLOSEST_STRIP_START * STRIP_H
+    panel_h = CLOSEST_PANEL_H
+
     if principal is None:
-        cy = CLOSEST_STRIP_START * STRIP_H + CLOSEST_PANEL_H // 2
+        cy = panel_y + panel_h // 2
         blit_text(surf, "nessun volo con dati disponibili nel raggio principale",
                   W // 2, cy - 10, size=16, color=GRAY, align="center")
         return
 
     ac  = principal
     cs  = (ac.get("flight") or "").strip()
-    ref_lat = config["Punto_rif_lat"]
-    ref_lon = config["Punto_rif_lon"]
 
-    orig, dest  = routes.get_route(cs) if cs else (routes._MISSING, routes._MISSING)
     airline     = routes.get_airline(cs) if cs else routes._AIRLINE_MISSING
     iata_flight = routes.get_callsign_iata(cs) if cs else cs
     ac_type     = routes.get_aircraft_type(ac.get("hex", ""))
@@ -238,33 +238,46 @@ def draw_strip23_closest(surf: pygame.Surface, principal: dict | None,
     airline_iata = airline.get("iata", "?")
     airline_name = airline.get("name", "")
 
-    LOGO_SIZE = 126
-    LOGO_X    = MARGIN_X
-    LOGO_Y    = CLOSEST_STRIP_START * STRIP_H + (CLOSEST_PANEL_H - LOGO_SIZE) // 2
+    # Column boundaries
+    COL1_W = 210   # logo column
+    COL2_W = 310   # flight number column
+    # COL3 takes the rest
 
-    # ── Logo (left side) ──
+    COL1_CX = COL1_W // 2
+    COL2_CX = COL1_W + COL2_W // 2
+    COL3_CX = COL1_W + COL2_W + (W - COL1_W - COL2_W) // 2
+
+    mid_y = panel_y + panel_h // 2
+
+    # ── Column 1: Logo ──
+    LOGO_SIZE = 140
+    logo_x = COL1_CX - LOGO_SIZE // 2
+    logo_y = panel_y + (panel_h - LOGO_SIZE) // 2
     logo = get_logo(airline_iata, LOGO_SIZE)
     if logo:
-        surf.blit(logo, (LOGO_X, LOGO_Y))
+        surf.blit(logo, (logo_x, logo_y))
     elif airline_iata not in ("?", "..."):
-        pygame.draw.rect(surf, GRAY, (LOGO_X, LOGO_Y, LOGO_SIZE, LOGO_SIZE), 1)
-        blit_text(surf, airline_iata, LOGO_X + LOGO_SIZE // 2, LOGO_Y + LOGO_SIZE // 2 - 10,
-                  size=20, color=GRAY, align="center")
+        pygame.draw.rect(surf, GRAY, (logo_x, logo_y, LOGO_SIZE, LOGO_SIZE), 1)
+        blit_text(surf, airline_iata, COL1_CX, mid_y - 10, size=20, color=GRAY, align="center")
 
-    # ── Text (right of logo) ──
-    TEXT_X = LOGO_X + LOGO_SIZE + 20
-    y0     = CLOSEST_STRIP_START * STRIP_H + 14
+    # Vertical divider after col 1
+    pygame.draw.line(surf, GRAY, (COL1_W, panel_y + 10), (COL1_W, panel_y + panel_h - 10), 1)
 
+    # ── Column 2: Flight number ──
     display_cs = iata_flight or cs or "—"
-    blit_text(surf, display_cs, TEXT_X, y0, size=46, bold=True, color=WHITE)
+    blit_text(surf, display_cs, COL2_CX, mid_y - 28, size=46, bold=True, color=WHITE, align="center")
 
+    # Vertical divider after col 2
+    pygame.draw.line(surf, GRAY, (COL1_W + COL2_W, panel_y + 10), (COL1_W + COL2_W, panel_y + panel_h - 10), 1)
+
+    # ── Column 3: Airline name + aircraft type ──
     if airline_name and airline_name != "?":
-        blit_text(surf, airline_name, TEXT_X, y0 + 52, size=18, color=CYAN)
+        blit_text(surf, airline_name, COL3_CX, mid_y - 22, size=20, color=CYAN, align="center")
 
     if ac_type and ac_type not in ("?", "..."):
-        blit_text(surf, ac_type, TEXT_X, y0 + 76, size=15, color=LGRAY)
+        blit_text(surf, ac_type, COL3_CX, mid_y + 12, size=16, color=LGRAY, align="center")
     elif ac_type == "...":
-        blit_text(surf, "...", TEXT_X, y0 + 76, size=15, color=GRAY)
+        blit_text(surf, "...", COL3_CX, mid_y + 12, size=16, color=GRAY, align="center")
 
 
 def find_principal_aircraft(aircraft_list: list[dict], config: dict) -> dict | None:
