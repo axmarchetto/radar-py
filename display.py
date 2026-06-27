@@ -596,6 +596,42 @@ def draw_standby(surf: pygame.Surface, now_str: str) -> None:
     blit_text(surf, "fuori orario", W // 2, H // 2 + 30, size=20, color=GRAY, align="center")
 
 
+def draw_debug_bar(surf: pygame.Surface, cpu_temp: float, fan_on: bool,
+                   pir: bool, active: bool, display_blank: bool) -> None:
+    """Thin debug overlay at the bottom of the screen."""
+    BAR_H = 18
+    bar_y = H - BAR_H
+
+    # Semi-transparent dark background
+    bg = pygame.Surface((W, BAR_H))
+    bg.set_alpha(200)
+    bg.fill((20, 20, 20))
+    surf.blit(bg, (0, bar_y))
+
+    def _col(val: bool) -> tuple:
+        return GREEN if val else RED
+
+    items = [
+        f"CPU {cpu_temp:.1f}°C",
+        f"FAN {'ON' if fan_on else 'off'}",
+        f"PIR {'ON' if pir else 'off'}",
+        f"ORARIO {'attivo' if active else 'fuori'}",
+        f"SCHERMO {'on' if not display_blank else 'BLANK'}",
+    ]
+    colors = [
+        GREEN if cpu_temp < 70 else RED,
+        _col(fan_on),
+        _col(pir),
+        _col(active),
+        RED if display_blank else GREEN,
+    ]
+
+    col_w = W // len(items)
+    for i, (text, color) in enumerate(zip(items, colors)):
+        cx = i * col_w + col_w // 2
+        blit_text(surf, text, cx, bar_y + 2, size=12, color=color, align="center")
+
+
 def draw_dividers(surf: pygame.Surface) -> None:
     """White lines between strips — skip internal dividers of merged panels."""
     merged_internal = {CLOSEST_STRIP_START + 1, AC_STRIP_START + 1}
@@ -628,6 +664,10 @@ def main() -> None:
     last_motion   = time.time()   # PIR: timestamp of last detected motion
     display_blank = False         # True when screen is blanked due to PIR timeout
     prev_pir      = True          # previous PIR state (for rising-edge detection)
+    cpu_temp      = hardware.get_cpu_temp()
+    fan_on        = False
+    pir           = True
+    active        = True
 
     while True:
         for event in pygame.event.get():
@@ -707,6 +747,7 @@ def main() -> None:
         draw_strip5_progress(surf, principal)
         draw_strip67_aircraft(surf, aircraft_list, config)
         draw_dividers(surf)
+        draw_debug_bar(surf, cpu_temp, fan_on, pir, active, display_blank)
 
         pygame.display.flip()
         clock.tick(30)
