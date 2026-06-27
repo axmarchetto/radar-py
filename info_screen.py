@@ -96,36 +96,74 @@ def _get_news(config: dict) -> list[str]:
         return list(_news)
 
 
-# ── Weather fetching (OpenWeatherMap) ─────────────────────────────────────────
+# ── Weather fetching (Open-Meteo — no API key required) ──────────────────────
 WEATHER_TTL = 600  # 10 minutes
 
-_weather:      dict | None = None
-_weather_at    = 0.0
-_weather_lock  = threading.Lock()
-_weather_pend  = False
+_weather:     dict | None = None
+_weather_at   = 0.0
+_weather_lock = threading.Lock()
+_weather_pend = False
+
+_WMO_DESC = {
+    0: "Cielo sereno", 1: "Prevalentemente sereno", 2: "Parzialmente nuvoloso",
+    3: "Nuvoloso", 45: "Nebbia", 48: "Nebbia con brina",
+    51: "Pioggerella leggera", 53: "Pioggerella", 55: "Pioggerella intensa",
+    61: "Pioggia leggera", 63: "Pioggia", 65: "Pioggia intensa",
+    71: "Neve leggera", 73: "Neve", 75: "Neve intensa", 77: "Granelli di neve",
+    80: "Rovesci leggeri", 81: "Rovesci", 82: "Rovesci intensi",
+    85: "Rovesci di neve", 86: "Rovesci di neve intensi",
+    95: "Temporale", 96: "Temporale con grandine", 99: "Temporale con grandine intensa",
+}
+
+_WMO_ICON = {
+    0: "01d", 1: "02d", 2: "02d", 3: "03d",
+    45: "50d", 48: "50d",
+    51: "09d", 53: "09d", 55: "09d",
+    61: "10d", 63: "10d", 65: "10d",
+    71: "13d", 73: "13d", 75: "13d", 77: "13d",
+    80: "09d", 81: "09d", 82: "09d",
+    85: "13d", 86: "13d",
+    95: "11d", 96: "11d", 99: "11d",
+}
 
 
-def _fetch_weather(api_key: str, city: str) -> None:
+def _fetch_weather(lat: float, lon: float, city_name: str) -> None:
     global _weather, _weather_at, _weather_pend
     try:
         r = requests.get(
-            "https://api.openweathermap.org/data/2.5/weather",
-            params={"q": city, "appid": api_key, "units": "metric", "lang": "it"},
+            "https://api.open-meteo.com/v1/forecast",
+            params={
+                "latitude":  lat,
+                "longitude": lon,
+                "current":   "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m",
+                "daily":     "temperature_2m_max,temperature_2m_min,weather_code",
+                "wind_speed_unit": "kmh",
+                "timezone":  "auto",
+            },
             timeout=8,
             headers={"User-Agent": "radar_py/1.0"},
         )
         if r.status_code == 200:
-            d = r.json()
+            d    = r.json()
+            cur  = d["current"]
+            day  = d["daily"]
+            code = int(cur["weather_code"])
             result = {
-                "temp":     round(d["main"]["temp"]),
-                "feels":    round(d["main"]["feels_like"]),
-                "temp_min": round(d["main"]["temp_min"]),
-                "temp_max": round(d["main"]["temp_max"]),
-                "humidity": d["main"]["humidity"],
-                "wind":     round(d["wind"]["speed"] * 3.6),   # m/s → km/h
-                "desc":     d["weather"][0]["description"].capitalize(),
-                "icon":     d["weather"][0]["icon"],
-                "city":     d["name"],
+                "temp":     round(cur["temperature_2m"]),
+                "feels":    round(cur["apparent_temperature"]),
+                "temp_min": round(day["temperature_2m_min"][0]),
+                "temp_max": round(day["temperature_2m_max"][0]),
+                "humidity": cur["relative_humidity_2m"],
+                "wind":     round(cur["wind_speed_10m"]),
+                "desc":     _WMO_DESC.get(code, f"Codice {code}"),
+                "icon":     _WMO_ICON.get(code, "03d"),
+                "city":     city_name,
+                "tomorrow_min":  round(day["temperature_2m_min"][1]),
+                "tomorrow_max":  round(day["temperature_2m_max"][1]),
+                "tomorrow_icon": _WMO_ICON.get(int(day["weather_code"][1]), "03d"),
+                "d2_min":  round(day["temperature_2m_min"][2]),
+                "d2_max":  round(day["temperature_2m_max"][2]),
+                "d2_icon": _WMO_ICON.get(int(day["weather_code"][2]), "03d"),
             }
         else:
             result = None
@@ -139,15 +177,16 @@ def _fetch_weather(api_key: str, city: str) -> None:
 
 def _get_weather(config: dict) -> dict | None:
     global _weather_pend
-    api_key = config.get("openweather_api_key", "").strip()
-    city    = config.get("openweather_city", "").strip()
-    if not api_key or not city:
+    lat  = config.get("Punto_rif_lat")
+    lon  = config.get("Punto_rif_lon")
+    name = config.get("Punto_di_riferimento", "Casa")
+    if lat is None or lon is None:
         return None
     with _weather_lock:
         fresh = _weather is not None and (time.time() - _weather_at < WEATHER_TTL)
         if not fresh and not _weather_pend:
             _weather_pend = True
-            threading.Thread(target=_fetch_weather, args=(api_key, city), daemon=True).start()
+            threading.Thread(target=_fetch_weather, args=(lat, lon, name), daemon=True).start()
         return dict(_weather) if _weather else None
 
 
@@ -236,12 +275,29 @@ _ticker_text = ""
 def _build_ticker(headlines: list[str]) -> pygame.Surface | None:
     if not headlines:
         return None
-    text = "   ✦   ".join(headlines) + "   ✦   "
-    f    = _font(20)
-    return f.render(text, True, WHITE)
+    f   = _font(30)
+    sep = f.render("  »»  ", True, CYAN)
+
+    text_surfs = [f.render(h, True, WHITE) for h in headlines]
+    line_h     = max(s.get_height() for s in text_surfs)
+    total_w    = sum(s.get_width() for s in text_surfs) + sep.get_width() * len(text_surfs)
+
+    ticker = pygame.Surface((total_w, line_h))
+    ticker.fill(BLACK)
+
+    x = 0
+    for ts in text_surfs:
+        sep_surf = f.render("  »»  ", True, CYAN)
+        ticker.blit(sep_surf, (x, (line_h - sep_surf.get_height()) // 2))
+        x += sep_surf.get_width()
+        ticker.blit(ts, (x, (line_h - ts.get_height()) // 2))
+        x += ts.get_width()
+
+    return ticker
 
 
 def _update_ticker(headlines: list[str]) -> None:
+
     global _ticker_surf, _ticker_text, _ticker_x
     joined = " | ".join(headlines)
     if joined != _ticker_text:
@@ -268,7 +324,7 @@ def _draw_datetime(surf: pygame.Surface, now_dt: datetime) -> None:
 
     # Large time
     time_str = now_dt.strftime("%H:%M:%S")
-    _text(surf, time_str, W // 2, DATETIME_Y_TOP + 20, size=88, bold=True,
+    _text(surf, time_str, W // 2, DATETIME_Y_TOP + 20, size=88,
           color=WHITE, align="center")
 
     # Date with weekday
@@ -286,56 +342,73 @@ def _draw_datetime(surf: pygame.Surface, now_dt: datetime) -> None:
 
 def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> None:
     panel_h = WEATHER_Y_BOT - WEATHER_Y_TOP
-    cx      = W // 2
     mid_y   = WEATHER_Y_TOP + panel_h // 2
 
-    api_key = config.get("openweather_api_key", "").strip()
+    if weather is None:
+        _text(surf, "...", W // 2, mid_y - 10, size=28, color=GRAY, align="center")
+        pygame.draw.line(surf, GRAY, (40, WEATHER_Y_BOT - 2), (W - 40, WEATHER_Y_BOT - 2), 1)
+        return
 
-    if not api_key:
-        # No API key configured
-        _text(surf, "Meteo non configurato", cx, mid_y - 30, size=22,
-              color=GRAY, align="center")
-        _text(surf, "Aggiungere openweather_api_key e openweather_city in config.json",
-              cx, mid_y + 10, size=15, color=GRAY, align="center")
-        _text(surf, "API gratuita su openweathermap.org",
-              cx, mid_y + 36, size=14, color=GRAY, align="center")
-    elif weather is None:
-        _text(surf, "...", cx, mid_y - 10, size=28, color=GRAY, align="center")
-    else:
-        ICON_CX = 220
-        ICON_CY = mid_y
-        ICON_SZ = 180
+    # ── Column boundaries ──
+    # Cols: [TODAY (0–512)] | [DOMANI (512–768)] | [DOPODOMANI (768–1024)]
+    C1 = 0
+    C2 = W // 2          # 512 — start of "domani"
+    C3 = W * 3 // 4      # 768 — start of "dopodomani"
 
-        # Weather icon
-        draw_weather_icon(surf, ICON_CX, ICON_CY, weather["icon"], ICON_SZ)
+    # Vertical dividers
+    for x in (C2, C3):
+        pygame.draw.line(surf, GRAY, (x, WEATHER_Y_TOP + 10), (x, WEATHER_Y_BOT - 10), 1)
 
-        # City name
-        _text(surf, weather["city"], cx + 60, WEATHER_Y_TOP + 18,
-              size=22, color=LGRAY, align="center")
+    # ── TODAY (col 1+2) ──
+    label_y  = WEATHER_Y_TOP + 8
+    _text(surf, "OGGI", C2 // 2, label_y, size=15, color=LGRAY, align="center")
 
-        # Temperature (large)
-        _text(surf, f"{weather['temp']}°", cx + 60, WEATHER_Y_TOP + 50,
-              size=90, bold=True, color=CYAN, align="center")
+    ICON_SZ = 130
+    ICON_CX = C1 + 90
+    ICON_CY = WEATHER_Y_TOP + 60 + ICON_SZ // 2
+    draw_weather_icon(surf, ICON_CX, ICON_CY, weather["icon"], ICON_SZ)
 
-        # Description
-        _text(surf, weather["desc"], cx + 60, WEATHER_Y_TOP + 155,
-              size=22, color=WHITE, align="center")
+    txt_x   = C1 + 200
+    txt_y   = WEATHER_Y_TOP + 28
+    _text(surf, f"{weather['temp']}°", txt_x, txt_y,      size=80, color=CYAN, align="left")
+    _text(surf, weather["desc"],       txt_x, txt_y + 88, size=18, color=WHITE, align="left")
 
-        # Details row
-        details_y = WEATHER_Y_TOP + 195
-        details = [
-            (f"min {weather['temp_min']}°  max {weather['temp_max']}°", LGRAY),
-            (f"Umidita'  {weather['humidity']}%",                        LGRAY),
-            (f"Vento  {weather['wind']} km/h",                           LGRAY),
-            (f"Percepita  {weather['feels']}°",                          LGRAY),
-        ]
-        col_w = (W - 120) // len(details)
-        for i, (txt, col) in enumerate(details):
-            _text(surf, txt, 60 + i * col_w + col_w // 2, details_y,
-                  size=17, color=col, align="center")
+    details = [
+        f"min {weather['temp_min']}°  max {weather['temp_max']}°",
+        f"Percepita {weather['feels']}°",
+        f"Umidita' {weather['humidity']}%    Vento {weather['wind']} km/h",
+    ]
+    for i, txt in enumerate(details):
+        _text(surf, txt, txt_x, txt_y + 114 + i * 24, size=16, color=LGRAY, align="left")
 
-    # Divider
+    # ── DOMANI (col 3) ──
+    _draw_forecast_col(surf, C2, C3, "DOMANI",
+                       weather["tomorrow_icon"],
+                       weather["tomorrow_min"], weather["tomorrow_max"])
+
+    # ── DOPODOMANI (col 4) ──
+    _draw_forecast_col(surf, C3, W, "DOPODOMANI",
+                       weather["d2_icon"],
+                       weather["d2_min"], weather["d2_max"])
+
+    # Horizontal divider
     pygame.draw.line(surf, GRAY, (40, WEATHER_Y_BOT - 2), (W - 40, WEATHER_Y_BOT - 2), 1)
+
+
+def _draw_forecast_col(surf: pygame.Surface, x0: int, x1: int, label: str,
+                       icon: str, t_min: int, t_max: int) -> None:
+    col_w   = x1 - x0
+    cx      = x0 + col_w // 2
+    panel_h = WEATHER_Y_BOT - WEATHER_Y_TOP
+
+    _text(surf, label, cx, WEATHER_Y_TOP + 8, size=15, color=LGRAY, align="center")
+
+    ICON_SZ = 100
+    icon_y  = WEATHER_Y_TOP + 40
+    draw_weather_icon(surf, cx, icon_y + ICON_SZ // 2, icon, ICON_SZ)
+
+    _text(surf, f"max {t_max}°", cx, icon_y + ICON_SZ + 14, size=18, color=CYAN, align="center")
+    _text(surf, f"min {t_min}°", cx, icon_y + ICON_SZ + 38, size=16, color=LGRAY, align="center")
 
 
 def _draw_ticker(surf: pygame.Surface, headlines: list[str]) -> None:
@@ -355,8 +428,8 @@ def _draw_ticker(surf: pygame.Surface, headlines: list[str]) -> None:
     surf.set_clip(clip_rect)
 
     if not headlines:
-        _text(surf, "recupero notizie...", label_w + 20, mid_y - 10,
-              size=18, color=GRAY)
+        _text(surf, "recupero notizie...", label_w + 20, mid_y - 15,
+              size=30, color=GRAY)
     else:
         _update_ticker(headlines)
         if _ticker_surf:

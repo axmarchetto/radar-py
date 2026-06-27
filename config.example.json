@@ -10,7 +10,5 @@
     "pir_timeout_min": 5,
     "gpio_fan": 18,
     "gpio_pir": 17,
-    "openweather_api_key": "",
-    "openweather_city": "Torino",
     "news_rss_url": "https://www.ansa.it/sito/notizie/cronaca/cronaca_rss.xml"
 }
