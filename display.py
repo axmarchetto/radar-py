@@ -17,14 +17,14 @@ import routes
 from main import load_config, load_aircraft, haversine_km
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-BLACK  = (  0,   0,   0)
-WHITE  = (255, 255, 255)
-GRAY   = ( 90,  90,  90)
-LGRAY  = (160, 160, 160)
-GREEN  = (  0, 200,  80)
-YELLOW = (240, 200,   0)
-CYAN   = (  0, 200, 220)
-RED    = (220,  50,  50)
+BLACK  = (220, 240, 255)   # background: light azure
+WHITE  = ( 15,  30,  60)   # main text: dark navy
+GRAY   = (120, 150, 190)   # dividers / secondary elements
+LGRAY  = ( 70, 100, 150)   # secondary text
+GREEN  = (  0, 140,  50)   # green (darker for light bg)
+YELLOW = (180, 130,   0)   # yellow (darker for light bg)
+CYAN   = (  0,  90, 180)   # blue instead of cyan
+RED    = (190,  30,  30)   # red (darker for light bg)
 
 # ── Layout ────────────────────────────────────────────────────────────────────
 W, H       = 1024, 600
@@ -467,7 +467,7 @@ def draw_strip5_progress(surf: pygame.Surface, principal: dict | None) -> None:
             # Filled portion: gradient-like effect with two rects
             pygame.draw.rect(surf, CYAN, (BAR_X, BAR_Y, filled, BAR_H))
             # Bright leading edge
-            pygame.draw.rect(surf, WHITE, (BAR_X + filled - 2, BAR_Y, 2, BAR_H))
+            pygame.draw.rect(surf, (255, 255, 255), (BAR_X + filled - 2, BAR_Y, 2, BAR_H))
 
         # Percentage text centred on bar
         pct_text = f"{pct_val:.0f}%"
