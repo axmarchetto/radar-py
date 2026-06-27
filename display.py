@@ -239,8 +239,8 @@ def draw_strip23_closest(surf: pygame.Surface, principal: dict | None,
     airline_name = airline.get("name", "")
 
     # Column boundaries
-    COL1_W = 210   # logo column
-    COL2_W = 310   # flight number column
+    COL1_W = 210        # logo column
+    COL2_W = W // 2 - COL1_W   # flight number column — right edge aligns with strip 4 divider
     # COL3 takes the rest
 
     COL1_CX = COL1_W // 2
@@ -272,12 +272,12 @@ def draw_strip23_closest(surf: pygame.Surface, principal: dict | None,
 
     # ── Column 3: Airline name + aircraft type ──
     if airline_name and airline_name != "?":
-        blit_text(surf, airline_name, COL3_CX, mid_y - 22, size=20, color=CYAN, align="center")
+        blit_text(surf, airline_name, COL3_CX, mid_y - 28, size=26, bold=True, color=CYAN, align="center")
 
     if ac_type and ac_type not in ("?", "..."):
-        blit_text(surf, ac_type, COL3_CX, mid_y + 12, size=16, color=LGRAY, align="center")
+        blit_text(surf, ac_type, COL3_CX, mid_y + 10, size=20, color=LGRAY, align="center")
     elif ac_type == "...":
-        blit_text(surf, "...", COL3_CX, mid_y + 12, size=16, color=GRAY, align="center")
+        blit_text(surf, "...", COL3_CX, mid_y + 10, size=20, color=GRAY, align="center")
 
 
 def find_principal_aircraft(aircraft_list: list[dict], config: dict) -> dict | None:
@@ -304,7 +304,7 @@ def find_principal_aircraft(aircraft_list: list[dict], config: dict) -> dict | N
 
 
 def draw_strip3_airports(surf: pygame.Surface, principal: dict | None) -> None:
-    """Strip 4 (index 3): departure and arrival airports for principal aircraft."""
+    """Strip 4 (index 3): departure/arrival in left half; right half reserved."""
     y0    = 3 * STRIP_H
     mid_y = y0 + STRIP_H // 2
     if principal is None:
@@ -314,35 +314,39 @@ def draw_strip3_airports(surf: pygame.Surface, principal: dict | None) -> None:
     cs = (ac.get("flight") or "").strip()
     orig, dest = routes.get_route(cs) if cs else (routes._MISSING, routes._MISSING)
 
-    # ── Centre arrow ──
-    cx = W // 2
-    blit_text(surf, "->", cx, mid_y - 12, size=22, color=GRAY, align="center")
+    COL_MID = W // 2   # divider between left and right column
+
+    # Vertical divider
+    pygame.draw.line(surf, GRAY, (COL_MID, y0 + 8), (COL_MID, y0 + STRIP_H - 8), 1)
+
+    # ── Arrow (centre of left column) ──
+    arrow_x = COL_MID // 2
+    blit_text(surf, "->", arrow_x, mid_y - 12, size=22, color=GRAY, align="center")
 
     # ── Left: departure ──
     dep_iata = orig["iata"]
     dep_name = (orig.get("name") or "").strip()
     dep_city = (orig.get("municipality") or "").strip()
 
-    blit_text(surf, dep_iata if dep_iata not in ("?","...") else "—",
+    blit_text(surf, dep_iata if dep_iata not in ("?", "...") else "—",
               MARGIN_X, y0 + 8, size=30, bold=True, color=WHITE)
     if dep_name and dep_name != "?":
-        blit_text(surf, dep_name[:38], MARGIN_X, y0 + 42, size=13, color=LGRAY)
+        blit_text(surf, dep_name[:22], MARGIN_X, y0 + 42, size=13, color=LGRAY)
     if dep_city and dep_city != "?":
         blit_text(surf, dep_city, MARGIN_X, y0 + 57, size=13, color=CYAN)
 
-    # ── Right: arrival ──
+    # ── Arrival (right side of left column) ──
     arr_iata = dest["iata"]
     arr_name = (dest.get("name") or "").strip()
     arr_city = (dest.get("municipality") or "").strip()
 
-    blit_text(surf, arr_iata if arr_iata not in ("?","...") else "—",
-              W - MARGIN_X, y0 + 8, size=30, bold=True, color=WHITE, align="right")
+    arr_right = COL_MID - MARGIN_X
+    blit_text(surf, arr_iata if arr_iata not in ("?", "...") else "—",
+              arr_right, y0 + 8, size=30, bold=True, color=WHITE, align="right")
     if arr_name and arr_name != "?":
-        blit_text(surf, arr_name[:38], W - MARGIN_X, y0 + 42, size=13,
-                  color=LGRAY, align="right")
+        blit_text(surf, arr_name[:22], arr_right, y0 + 42, size=13, color=LGRAY, align="right")
     if arr_city and arr_city != "?":
-        blit_text(surf, arr_city, W - MARGIN_X, y0 + 57, size=13,
-                  color=CYAN, align="right")
+        blit_text(surf, arr_city, arr_right, y0 + 57, size=13, color=CYAN, align="right")
 
 
 def _track_to_compass(deg: float) -> str:
