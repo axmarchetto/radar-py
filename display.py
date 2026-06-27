@@ -14,6 +14,7 @@ import requests
 
 import airports
 import routes
+import hardware
 from main import load_config, load_aircraft, haversine_km
 
 # ── Colors ────────────────────────────────────────────────────────────────────
@@ -575,6 +576,26 @@ def draw_strip67_aircraft(surf: pygame.Surface, aircraft_list: list[dict],
         blit_text(surf, fmt_dist(ac, ref_lat, ref_lon), COL_DIST, ry, size=row_s, color=LGRAY)
 
 
+def _parse_time(t: str) -> tuple[int, int]:
+    h, m = t.split(":")
+    return int(h), int(m)
+
+
+def _is_active_hour(config: dict, now: datetime) -> bool:
+    start = _parse_time(config.get("ora_inizio", "00:00"))
+    end   = _parse_time(config.get("ora_fine",   "23:59"))
+    cur   = (now.hour, now.minute)
+    if start <= end:
+        return start <= cur <= end
+    return cur >= start or cur <= end   # overnight range
+
+
+def draw_standby(surf: pygame.Surface, now_str: str) -> None:
+    surf.fill(BLACK)
+    blit_text(surf, now_str, W // 2, H // 2 - 24, size=48, bold=True, color=GRAY, align="center")
+    blit_text(surf, "fuori orario", W // 2, H // 2 + 30, size=20, color=GRAY, align="center")
+
+
 def draw_dividers(surf: pygame.Surface) -> None:
     """White lines between strips — skip internal dividers of merged panels."""
     merged_internal = {CLOSEST_STRIP_START + 1, AC_STRIP_START + 1}
@@ -587,38 +608,82 @@ def draw_dividers(surf: pygame.Surface) -> None:
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    config  = load_config()
-    ref_lat = config["Punto_rif_lat"]
-    ref_lon = config["Punto_rif_lon"]
+    config   = load_config()
+    ref_lat  = config["Punto_rif_lat"]
+    ref_lon  = config["Punto_rif_lon"]
     max_dist = config.get("distanza_rilevamento")
+    temp_max = config.get("temperatura_max_rpi", 60)
+    pir_timeout = config.get("pir_timeout_min", 5) * 60  # seconds
 
     threading.Thread(target=lambda: airports.get_coords_iata("FCO"), daemon=True).start()
 
     pygame.init()
+    hardware.init(config)
     pygame.display.set_caption("ADS-B Radar")
     surf  = pygame.display.set_mode((W, H))
     clock = pygame.time.Clock()
 
-    last_refresh = 0
+    last_refresh  = 0
     aircraft_list: list[dict] = []
+    last_motion   = time.time()   # PIR: timestamp of last detected motion
+    display_blank = False         # True when screen is blanked due to PIR timeout
+    prev_pir      = True          # previous PIR state (for rising-edge detection)
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit(); sys.exit()
+                hardware.cleanup(); pygame.quit(); sys.exit()
             if event.type == pygame.KEYDOWN and event.key in (pygame.K_q, pygame.K_ESCAPE):
-                pygame.quit(); sys.exit()
+                hardware.cleanup(); pygame.quit(); sys.exit()
 
-        now = time.time()
-        if now - last_refresh >= REFRESH_MS / 1000:
-            last_refresh = now
+        now_ts  = time.time()
+        now_dt  = datetime.now()
+        now_str = now_dt.strftime("%H:%M:%S")
+
+        # ── Feature 3: active hours check ──
+        active = _is_active_hour(config, now_dt)
+        if not active:
+            hardware.set_fan(False)
+            draw_standby(surf, now_str)
+            pygame.display.flip()
+            clock.tick(2)
+            continue
+
+        # ── Feature 1: fan control ──
+        cpu_temp = hardware.get_cpu_temp()
+        hardware.set_fan(cpu_temp >= temp_max)
+
+        # ── Feature 2 + 4: PIR sensor + beep on rising edge ──
+        pir = hardware.get_pir()
+        if pir:
+            last_motion = now_ts
+            if not prev_pir:              # rising edge: motion just started
+                hardware.play_beep()
+                if display_blank:
+                    display_blank = False
+                    hardware.set_display_power(True)
+        elif now_ts - last_motion > pir_timeout:
+            if not display_blank:
+                display_blank = True
+                hardware.set_display_power(False)
+        prev_pir = pir
+
+        if display_blank:
+            surf.fill(BLACK)
+            pygame.display.flip()
+            clock.tick(2)
+            continue
+
+        # ── Data refresh ──
+        if now_ts - last_refresh >= REFRESH_MS / 1000:
+            last_refresh = now_ts
             try:
                 raw = load_aircraft()
                 filtered = [a for a in raw
                             if max_dist is None or dist_from_ref(a, ref_lat, ref_lon) <= max_dist]
                 aircraft_list = sorted(filtered, key=lambda a: dist_from_ref(a, ref_lat, ref_lon))
                 for ac in aircraft_list:
-                    cs  = (ac.get("flight") or "").strip()
+                    cs    = (ac.get("flight") or "").strip()
                     hex24 = ac.get("hex", "")
                     if cs:
                         routes.get_route(cs)
@@ -630,10 +695,9 @@ def main() -> None:
 
         # ── Draw ──
         surf.fill(BLACK)
-        now_str   = datetime.now().strftime("%H:%M:%S")
         n_total   = sum(1 for _ in (load_aircraft() or []))
         n_visible = len(aircraft_list)
-        blink_on  = int(time.time() * 2) % 2 == 0   # toggle ogni 0.5 s
+        blink_on  = int(time.time() * 2) % 2 == 0
         principal = find_principal_aircraft(aircraft_list, config)
 
         draw_strip0_header(surf, config, n_total, n_visible, now_str, blink_on)
