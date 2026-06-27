@@ -9,5 +9,6 @@
     "ora_fine": "23:00",
     "pir_timeout_min": 5,
     "gpio_fan": 18,
-    "gpio_pir": 17
+    "gpio_pir": 17,
+    "news_rss_url": "https://www.ansa.it/sito/notizie/cronaca/cronaca_rss.xml"
 }
