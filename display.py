@@ -15,6 +15,7 @@ import requests
 import airports
 import routes
 import hardware
+import info_screen
 from main import load_config, load_aircraft, haversine_km
 
 # ── Colors ────────────────────────────────────────────────────────────────────
@@ -714,7 +715,7 @@ def main() -> None:
             clock.tick(2)
             continue
 
-        # ── Data refresh ──
+        # ── Data refresh (always, regardless of display mode) ──
         if now_ts - last_refresh >= REFRESH_MS / 1000:
             last_refresh = now_ts
             try:
@@ -733,20 +734,24 @@ def main() -> None:
             except Exception:
                 pass
 
-        # ── Draw ──
-        surf.fill(BLACK)
-        n_total   = sum(1 for _ in (load_aircraft() or []))
-        n_visible = len(aircraft_list)
-        blink_on  = int(time.time() * 2) % 2 == 0
-        principal = find_principal_aircraft(aircraft_list, config)
+        # ── Draw: PIR attivo → info screen, PIR inattivo → radar ──
+        if pir:
+            info_screen.draw(surf, config, now_dt)
+        else:
+            surf.fill(BLACK)
+            n_total   = sum(1 for _ in (load_aircraft() or []))
+            n_visible = len(aircraft_list)
+            blink_on  = int(time.time() * 2) % 2 == 0
+            principal = find_principal_aircraft(aircraft_list, config)
 
-        draw_strip0_header(surf, config, n_total, n_visible, now_str, blink_on)
-        draw_strip23_closest(surf, principal, config)
-        draw_strip3_airports(surf, principal, config)
-        draw_strip4_flightdata(surf, principal, config)
-        draw_strip5_progress(surf, principal)
-        draw_strip67_aircraft(surf, aircraft_list, config)
-        draw_dividers(surf)
+            draw_strip0_header(surf, config, n_total, n_visible, now_str, blink_on)
+            draw_strip23_closest(surf, principal, config)
+            draw_strip3_airports(surf, principal, config)
+            draw_strip4_flightdata(surf, principal, config)
+            draw_strip5_progress(surf, principal)
+            draw_strip67_aircraft(surf, aircraft_list, config)
+            draw_dividers(surf)
+
         draw_debug_bar(surf, cpu_temp, fan_on, pir, active, display_blank)
 
         pygame.display.flip()
