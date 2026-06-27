@@ -6,3 +6,4 @@ airports.csv
 logos/
 *.png
 config.json
+.claude/
