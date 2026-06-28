@@ -4,6 +4,7 @@
     "Punto_rif_lon": 7.0000,
     "distanza_rilevamento": 100,
     "distanza_max_princ": 50,
+    "timeout_aereo_meteo": 5,
     "temperatura_max_rpi": 60,
     "ora_inizio": "07:00",
     "ora_fine": "23:00",

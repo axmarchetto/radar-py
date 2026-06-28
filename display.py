@@ -14,7 +14,9 @@ import requests
 
 import airports
 import routes
+import info_screen
 from main import load_config, load_aircraft, haversine_km
+
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 BLACK  = (  0,   0,   0)
@@ -599,15 +601,20 @@ def main() -> None:
     surf  = pygame.display.set_mode((W, H))
     clock = pygame.time.Clock()
 
-    last_refresh = 0
-    aircraft_list: list[dict] = []
+    last_refresh       = 0
+    aircraft_list:     list[dict] = []
+    timeout_meteo      = config.get("timeout_aereo_meteo", 5)
+    last_aircraft_seen = time.time()
+    last_no_aircraft   = time.time()
+    showing_meteo      = False
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
-            if event.type == pygame.KEYDOWN and event.key in (pygame.K_q, pygame.K_ESCAPE):
-                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_q, pygame.K_ESCAPE):
+                    pygame.quit(); sys.exit()
 
         now = time.time()
         if now - last_refresh >= REFRESH_MS / 1000:
@@ -618,7 +625,7 @@ def main() -> None:
                             if max_dist is None or dist_from_ref(a, ref_lat, ref_lon) <= max_dist]
                 aircraft_list = sorted(filtered, key=lambda a: dist_from_ref(a, ref_lat, ref_lon))
                 for ac in aircraft_list:
-                    cs  = (ac.get("flight") or "").strip()
+                    cs    = (ac.get("flight") or "").strip()
                     hex24 = ac.get("hex", "")
                     if cs:
                         routes.get_route(cs)
@@ -628,21 +635,37 @@ def main() -> None:
             except Exception:
                 pass
 
-        # ── Draw ──
-        surf.fill(BLACK)
         now_str   = datetime.now().strftime("%H:%M:%S")
-        n_total   = sum(1 for _ in (load_aircraft() or []))
         n_visible = len(aircraft_list)
-        blink_on  = int(time.time() * 2) % 2 == 0   # toggle ogni 0.5 s
+        n_total   = n_visible
         principal = find_principal_aircraft(aircraft_list, config)
+        now       = time.time()
 
-        draw_strip0_header(surf, config, n_total, n_visible, now_str, blink_on)
-        draw_strip23_closest(surf, principal, config)
-        draw_strip3_airports(surf, principal, config)
-        draw_strip4_flightdata(surf, principal, config)
-        draw_strip5_progress(surf, principal)
-        draw_strip67_aircraft(surf, aircraft_list, config)
-        draw_dividers(surf)
+        if principal is not None:
+            last_aircraft_seen = now
+        else:
+            last_no_aircraft = now
+
+        if not showing_meteo:
+            if principal is None and now - last_aircraft_seen >= timeout_meteo:
+                showing_meteo = True
+        else:
+            if principal is not None and now - last_no_aircraft >= timeout_meteo:
+                showing_meteo = False
+
+        if showing_meteo:
+            info_screen.draw(surf, config, datetime.now())
+        else:
+            blink_on = int(time.time() * 2) % 2 == 0
+
+            surf.fill(BLACK)
+            draw_strip0_header(surf, config, n_total, n_visible, now_str, blink_on)
+            draw_strip23_closest(surf, principal, config)
+            draw_strip3_airports(surf, principal, config)
+            draw_strip4_flightdata(surf, principal, config)
+            draw_strip5_progress(surf, principal)
+            draw_strip67_aircraft(surf, aircraft_list, config)
+            draw_dividers(surf)
 
         pygame.display.flip()
         clock.tick(30)
