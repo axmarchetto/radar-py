@@ -9,18 +9,18 @@ Real-time ADS-B flight tracker using a **Nooelec NESDR SMArt v5** RTL-SDR dongle
 - Fetches route data, airline info, aircraft type and logos asynchronously from public APIs
 - Estimates time and closest distance to your reference point for the main aircraft
 - Raspberry Pi features: CPU fan control, PIR motion sensor, active hours scheduling, audio beep on motion
-- Info screen mode (activated by PIR): date/time, 3-day weather forecast, scrolling news ticker
+- Auto-switches to an info screen (date/time, 3-day weather forecast, scrolling news ticker) when no aircraft is visible in the main panel, and returns to radar when one appears
 
 ## Branches
 
 | Branch | Theme | Hardware | Info Screen |
 |--------|-------|----------|-------------|
-| `main` | Dark | — | — |
-| `sfondo-chiaro` | Light azure | fan + PIR + audio | yes |
+| `main` | Dark | — | yes (auto-timeout) |
+| `sfondo-chiaro` | Light azure | fan + PIR + audio | yes (PIR) |
 | `raspberry` | Dark | fan + PIR + audio | — |
-| `info-screen` | Dark | fan + PIR + audio | yes |
+| `info-screen` | Dark | fan + PIR + audio | yes (PIR) |
 
-**`main`** — Core radar display, dark theme, no hardware integration. Development reference branch.
+**`main`** — Core radar display, dark theme, no hardware integration. Automatically switches to the info screen when no aircraft appears in the main panel for `timeout_aereo_meteo` seconds, and returns to radar when one appears. Development reference branch.
 
 **`sfondo-chiaro`** — Light azure theme. Same hardware and info-screen features as `info-screen`.
 
@@ -86,6 +86,7 @@ pip install RPi.GPIO
     "Punto_rif_lon": 7.0000,
     "distanza_rilevamento": 100,
     "distanza_max_princ": 50,
+    "timeout_aereo_meteo": 5,
     "temperatura_max_rpi": 60,
     "ora_inizio": "07:00",
     "ora_fine": "23:00",
@@ -102,12 +103,13 @@ pip install RPi.GPIO
 | `Punto_rif_lat` / `Punto_rif_lon` | all | Coordinates of your reference point |
 | `distanza_rilevamento` | all | Radius in km for the aircraft list (strips 7+8) |
 | `distanza_max_princ` | all | Radius in km for the main detail panel — aircraft beyond this or without route data are skipped |
+| `timeout_aereo_meteo` | main | Seconds without a principal aircraft before switching to the info screen (and seconds with one before switching back). Default: 5 |
 | `temperatura_max_rpi` | raspberry / sfondo-chiaro / info-screen | CPU temperature threshold in °C above which the fan GPIO is activated |
 | `ora_inizio` / `ora_fine` | raspberry / sfondo-chiaro / info-screen | Active hours — display shows standby screen outside this range |
 | `pir_timeout_min` | raspberry / sfondo-chiaro / info-screen | Minutes without PIR motion before the screen blanks |
 | `gpio_fan` | raspberry / sfondo-chiaro / info-screen | BCM pin number for the fan output |
 | `gpio_pir` | raspberry / sfondo-chiaro / info-screen | BCM pin number for the PIR sensor input |
-| `news_rss_url` | sfondo-chiaro / info-screen | RSS feed URL for the news ticker on the info screen |
+| `news_rss_url` | main / sfondo-chiaro / info-screen | RSS feed URL for the news ticker on the info screen |
 
 ## Running
 
@@ -147,9 +149,9 @@ For the aircraft shown in the main panel, the display calculates the **estimated
 
 ## Display layout — info screen mode
 
-*(sfondo-chiaro / info-screen branches only)*
+The display automatically switches to a full-screen info panel when no principal aircraft has been visible for `timeout_aereo_meteo` seconds. It returns to radar with the same delay once an aircraft appears. In the `sfondo-chiaro` and `info-screen` branches the trigger is instead PIR motion sensor activity.
 
-When PIR motion is detected during active hours, the display switches to a full-screen info panel divided into three zones:
+The info panel is divided into three zones:
 
 | Zone | Y range | Content |
 |------|---------|---------|
@@ -178,8 +180,8 @@ Headlines are fetched from the RSS feed configured in `news_rss_url` (default: A
 | [adsbdb.com](https://www.adsbdb.com) | Flight routes (origin/destination/airline) by callsign; aircraft type by ICAO hex |
 | [pics.avs.io](https://pics.avs.io) | Airline logos by IATA code (downloaded once, cached in `logos/`) |
 | [OurAirports](https://ourairports.com) | Airport database — `airports.csv` downloaded on first run, ~85k airports |
-| [Open-Meteo](https://open-meteo.com) | 3-day weather forecast by coordinates, no API key required *(sfondo-chiaro / info-screen)* |
-| ANSA RSS | Scrolling news headlines *(sfondo-chiaro / info-screen)* |
+| [Open-Meteo](https://open-meteo.com) | 3-day weather forecast by coordinates, no API key required *(main / sfondo-chiaro / info-screen)* |
+| ANSA RSS | Scrolling news headlines *(main / sfondo-chiaro / info-screen)* |
 
 Route and aircraft type data are fetched asynchronously in background threads and cached for 30 minutes. The display never blocks waiting for API responses.
 
@@ -208,7 +210,7 @@ Radar_py/
 ├── routes.py           # Async route / airline / aircraft type cache
 ├── airports.py         # OurAirports CSV database loader
 ├── hardware.py         # Hardware abstraction (fan, PIR, audio) — raspberry / sfondo-chiaro / info-screen
-├── info_screen.py      # Info screen: date/time, weather, news ticker — sfondo-chiaro / info-screen
+├── info_screen.py      # Info screen: date/time, weather, news ticker — all branches
 ├── config.example.json # Configuration template (copy to config.json)
 ├── config.json         # Your configuration — git-ignored
 └── logos/              # Cached airline logo PNGs — git-ignored
