@@ -478,17 +478,17 @@ def draw_strip5_progress(surf: pygame.Surface, principal: dict | None) -> None:
     LABEL_W  = 75
     BAR_X    = MARGIN_X + LABEL_W + 12
     BAR_W    = W - BAR_X - LABEL_W - MARGIN_X - 12
-    BAR_H    = 38
+    BAR_H    = 76
     BAR_Y    = y0 + (STRIP_H - BAR_H) // 2
 
     # Departure label (left)
     dep_label = dep_iata if dep_iata not in ("?", "...") else "—"
-    blit_text(surf, dep_label, MARGIN_X + LABEL_W, BAR_Y + BAR_H // 2 - 14,
+    blit_text(surf, dep_label, MARGIN_X + LABEL_W, BAR_Y + BAR_H // 2 - 18,
               size=34, bold=True, color=WHITE, align="right")
 
     # Arrival label (right)
     arr_label = arr_iata if arr_iata not in ("?", "...") else "—"
-    blit_text(surf, arr_label, W - MARGIN_X - LABEL_W, BAR_Y + BAR_H // 2 - 14,
+    blit_text(surf, arr_label, W - MARGIN_X - LABEL_W, BAR_Y + BAR_H // 2 - 18,
               size=34, bold=True, color=WHITE)
 
     # Bar background
@@ -505,13 +505,13 @@ def draw_strip5_progress(surf: pygame.Surface, principal: dict | None) -> None:
         # Percentage text centred on bar
         pct_text = f"{pct_val:.0f}%"
         txt_x    = BAR_X + BAR_W // 2
-        txt_y    = BAR_Y + BAR_H // 2 - 12
+        txt_y    = BAR_Y + BAR_H // 2 - 18
         txt_color = BLACK if filled > BAR_W // 2 else WHITE
-        blit_text(surf, pct_text, txt_x, txt_y, size=30, bold=True,
+        blit_text(surf, pct_text, txt_x, txt_y, size=36, bold=True,
                   color=txt_color, align="center")
     else:
-        blit_text(surf, "—", BAR_X + BAR_W // 2, BAR_Y + BAR_H // 2 - 12,
-                  size=30, color=GRAY, align="center")
+        blit_text(surf, "—", BAR_X + BAR_W // 2, BAR_Y + BAR_H // 2 - 18,
+                  size=36, color=GRAY, align="center")
 
 
 
