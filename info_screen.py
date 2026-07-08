@@ -320,6 +320,15 @@ def draw(surf: pygame.Surface, config: dict, now_dt: datetime) -> None:
     _draw_ticker(surf, headlines)
 
     pygame.draw.line(surf, WHITE, (0, H - 1), (W, H - 1), 2)
+    _draw_ruler(surf)
+
+
+def _draw_ruler(surf: pygame.Surface) -> None:
+    RX = 30   # x position of the ruler line
+    pygame.draw.line(surf, WHITE, (RX, 0), (RX, 700), 1)
+    for y in range(0, 701, 50):
+        pygame.draw.line(surf, WHITE, (RX - 10, y), (RX + 10, y), 1)
+        _text(surf, str(y), RX + 14, y - 8, size=16, color=WHITE)
 
 
 def _draw_datetime(surf: pygame.Surface, now_dt: datetime) -> None:
