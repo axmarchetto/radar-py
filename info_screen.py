@@ -319,6 +319,8 @@ def draw(surf: pygame.Surface, config: dict, now_dt: datetime) -> None:
     _draw_weather(surf, weather, config)
     _draw_ticker(surf, headlines)
 
+    pygame.draw.line(surf, WHITE, (0, H - 1), (W, H - 1), 2)
+
 
 def _draw_datetime(surf: pygame.Surface, now_dt: datetime) -> None:
     DAYS   = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"]
@@ -374,10 +376,11 @@ def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> N
     details = [
         f"min {weather['temp_min']}°  max {weather['temp_max']}°",
         f"Percepita {weather['feels']}°",
-        f"Umidita' {weather['humidity']}%    Vento {weather['wind']} km/h",
+        f"Umidita' {weather['humidity']}%",
+        f"Vento {weather['wind']} km/h",
     ]
     for i, txt in enumerate(details):
-        _text(surf, txt, txt_x, txt_y + 165 + i * 50, size=44, color=LGRAY, align="left")
+        _text(surf, txt, txt_x, txt_y + 155 + i * 42, size=44, color=LGRAY, align="left")
 
     # ── DOMANI (col 3) ──
     _draw_forecast_col(surf, C2, C3, "DOMANI",
