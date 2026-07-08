@@ -536,8 +536,9 @@ def main() -> None:
 
     pygame.init()
     pygame.display.set_caption("ADS-B Radar")
-    surf  = pygame.display.set_mode((W, H))
-    clock = pygame.time.Clock()
+    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    surf   = pygame.Surface((W, H))
+    clock  = pygame.time.Clock()
 
     last_refresh       = 0
     aircraft_list:     list[dict] = []
@@ -604,6 +605,7 @@ def main() -> None:
             draw_strip5_progress(surf, principal)
             draw_dividers(surf)
 
+        pygame.transform.scale(surf, screen.get_size(), screen)
         pygame.display.flip()
         clock.tick(30)
 
