@@ -342,7 +342,7 @@ def _draw_datetime(surf: pygame.Surface, now_dt: datetime) -> None:
 
     cy = DATETIME_Y_TOP + (DATETIME_Y_BOT - DATETIME_Y_TOP) // 2 - 22
 
-    _text(surf, time_str, MARGIN_X, cy, size=65, color=WHITE, bold=True)
+    _text(surf, time_str, MARGIN_X, cy, size=72, color=WHITE)
     _text(surf, day_name, W // 2,   cy, size=54, color=CYAN,  align="center")
     _text(surf, date_str, W - MARGIN_X, cy, size=54, color=LGRAY, align="right")
 
@@ -379,7 +379,7 @@ def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> N
 
     txt_x   = C1 + 240
     txt_y   = WEATHER_Y_TOP + 36
-    _text(surf, f"{weather['temp']}°", txt_x, txt_y + 10,   size=100, color=CYAN, align="left")
+    _text(surf, f"{weather['temp']}°", txt_x, txt_y + 35,   size=100, color=CYAN, align="left")
     _text(surf, weather["desc"],       txt_x, txt_y + 110, size=48,  color=WHITE, align="left")
 
     details = [
