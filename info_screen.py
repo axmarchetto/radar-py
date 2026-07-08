@@ -390,7 +390,7 @@ def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> N
                        weather["d2_min"], weather["d2_max"])
 
     # Horizontal divider
-    pygame.draw.line(surf, GRAY, (40, WEATHER_Y_BOT - 2), (W - 40, WEATHER_Y_BOT - 2), 1)
+    pygame.draw.line(surf, GRAY, (40, WEATHER_Y_BOT + 38), (W - 40, WEATHER_Y_BOT + 38), 1)
 
 
 def _draw_forecast_col(surf: pygame.Surface, x0: int, x1: int, label: str,
@@ -416,8 +416,9 @@ def _draw_ticker(surf: pygame.Surface, headlines: list[str]) -> None:
     mid_y   = TICKER_Y_TOP + panel_h // 2 + 50
 
     # Source label
-    label_w = 80
-    pygame.draw.rect(surf, CYAN, (0, TICKER_Y_TOP, label_w, panel_h))
+    label_w  = 80
+    label_offset = 40
+    pygame.draw.rect(surf, CYAN, (0, TICKER_Y_TOP + label_offset, label_w, panel_h - label_offset))
     _text(surf, "ANSA", label_w // 2, mid_y - 11, size=18, bold=True,
           color=BLACK, align="center")
 
