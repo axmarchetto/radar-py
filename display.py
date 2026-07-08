@@ -479,7 +479,7 @@ def draw_strip5_progress(surf: pygame.Surface, principal: dict | None) -> None:
     BAR_X    = MARGIN_X + LABEL_W + 12
     BAR_W    = W - BAR_X - LABEL_W - MARGIN_X - 12
     BAR_H    = 76
-    BAR_Y    = y0 + (STRIP_H - BAR_H) // 2
+    BAR_Y    = y0 + (STRIP_H - BAR_H) // 2 + 10
 
     # Departure label (left)
     dep_label = dep_iata if dep_iata not in ("?", "...") else "—"
@@ -507,11 +507,11 @@ def draw_strip5_progress(surf: pygame.Surface, principal: dict | None) -> None:
         txt_x    = BAR_X + BAR_W // 2
         txt_y    = BAR_Y + BAR_H // 2 - 18
         txt_color = BLACK if filled > BAR_W // 2 else WHITE
-        blit_text(surf, pct_text, txt_x, txt_y, size=36, bold=True,
+        blit_text(surf, pct_text, txt_x, txt_y, size=46,
                   color=txt_color, align="center")
     else:
         blit_text(surf, "—", BAR_X + BAR_W // 2, BAR_Y + BAR_H // 2 - 18,
-                  size=36, color=GRAY, align="center")
+                  size=46, color=GRAY, align="center")
 
 
 
