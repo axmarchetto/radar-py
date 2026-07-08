@@ -20,12 +20,13 @@ YELLOW = (240, 200,   0)
 BLUE   = ( 80, 140, 220)
 RED    = (220,  60,  60)
 
-W, H = 1024, 600
+W, H     = 1024, 600
+MARGIN_X = 14
 
 # ── Layout zones ──────────────────────────────────────────────────────────────
 DATETIME_Y_TOP  = 0
-DATETIME_Y_BOT  = 190
-WEATHER_Y_TOP   = 190
+DATETIME_Y_BOT  = 95
+WEATHER_Y_TOP   = 95
 WEATHER_Y_BOT   = 460
 TICKER_Y_TOP    = 460
 TICKER_Y_BOT    = H
@@ -320,23 +321,20 @@ def draw(surf: pygame.Surface, config: dict, now_dt: datetime) -> None:
 
 
 def _draw_datetime(surf: pygame.Surface, now_dt: datetime) -> None:
-    panel_h = DATETIME_Y_BOT - DATETIME_Y_TOP
-
-    # Large time
-    time_str = now_dt.strftime("%H:%M:%S")
-    _text(surf, time_str, W // 2, DATETIME_Y_TOP + 20, size=88,
-          color=WHITE, align="center")
-
-    # Date with weekday
-    DAYS = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"]
+    DAYS   = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"]
     MONTHS = ["","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
               "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
-    day_name  = DAYS[now_dt.weekday()]
-    date_str  = f"{day_name} {now_dt.day} {MONTHS[now_dt.month]} {now_dt.year}"
-    _text(surf, date_str, W // 2, DATETIME_Y_TOP + 130, size=28,
-          color=LGRAY, align="center")
 
-    # Divider
+    time_str = now_dt.strftime("%H:%M:%S")
+    day_name = DAYS[now_dt.weekday()]
+    date_str = f"{now_dt.day} {MONTHS[now_dt.month]} {now_dt.year}"
+
+    cy = DATETIME_Y_TOP + (DATETIME_Y_BOT - DATETIME_Y_TOP) // 2 - 22
+
+    _text(surf, time_str, MARGIN_X, cy, size=54, color=WHITE, bold=True)
+    _text(surf, day_name, W // 2,   cy, size=54, color=CYAN,  align="center")
+    _text(surf, date_str, W - MARGIN_X, cy, size=54, color=LGRAY, align="right")
+
     pygame.draw.line(surf, GRAY, (40, DATETIME_Y_BOT - 2), (W - 40, DATETIME_Y_BOT - 2), 1)
 
 
@@ -360,18 +358,18 @@ def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> N
         pygame.draw.line(surf, GRAY, (x, WEATHER_Y_TOP + 10), (x, WEATHER_Y_BOT - 10), 1)
 
     # ── TODAY (col 1+2) ──
-    label_y  = WEATHER_Y_TOP + 8
-    _text(surf, "OGGI", C2 // 2, label_y, size=15, color=LGRAY, align="center")
+    label_y  = WEATHER_Y_TOP + 10
+    _text(surf, "OGGI", C2 // 2, label_y, size=20, color=LGRAY, align="center")
 
-    ICON_SZ = 130
-    ICON_CX = C1 + 90
-    ICON_CY = WEATHER_Y_TOP + 60 + ICON_SZ // 2
+    ICON_SZ = 160
+    ICON_CX = C1 + 110
+    ICON_CY = WEATHER_Y_TOP + 80 + ICON_SZ // 2
     draw_weather_icon(surf, ICON_CX, ICON_CY, weather["icon"], ICON_SZ)
 
-    txt_x   = C1 + 200
-    txt_y   = WEATHER_Y_TOP + 28
-    _text(surf, f"{weather['temp']}°", txt_x, txt_y,      size=80, color=CYAN, align="left")
-    _text(surf, weather["desc"],       txt_x, txt_y + 88, size=18, color=WHITE, align="left")
+    txt_x   = C1 + 240
+    txt_y   = WEATHER_Y_TOP + 36
+    _text(surf, f"{weather['temp']}°", txt_x, txt_y,       size=100, color=CYAN, align="left")
+    _text(surf, weather["desc"],       txt_x, txt_y + 110, size=24,  color=WHITE, align="left")
 
     details = [
         f"min {weather['temp_min']}°  max {weather['temp_max']}°",
@@ -379,7 +377,7 @@ def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> N
         f"Umidita' {weather['humidity']}%    Vento {weather['wind']} km/h",
     ]
     for i, txt in enumerate(details):
-        _text(surf, txt, txt_x, txt_y + 114 + i * 24, size=16, color=LGRAY, align="left")
+        _text(surf, txt, txt_x, txt_y + 142 + i * 30, size=22, color=LGRAY, align="left")
 
     # ── DOMANI (col 3) ──
     _draw_forecast_col(surf, C2, C3, "DOMANI",
@@ -401,14 +399,14 @@ def _draw_forecast_col(surf: pygame.Surface, x0: int, x1: int, label: str,
     cx      = x0 + col_w // 2
     panel_h = WEATHER_Y_BOT - WEATHER_Y_TOP
 
-    _text(surf, label, cx, WEATHER_Y_TOP + 8, size=15, color=LGRAY, align="center")
+    _text(surf, label, cx, WEATHER_Y_TOP + 10, size=20, color=LGRAY, align="center")
 
-    ICON_SZ = 100
-    icon_y  = WEATHER_Y_TOP + 40
+    ICON_SZ = 130
+    icon_y  = WEATHER_Y_TOP + 50
     draw_weather_icon(surf, cx, icon_y + ICON_SZ // 2, icon, ICON_SZ)
 
-    _text(surf, f"max {t_max}°", cx, icon_y + ICON_SZ + 14, size=18, color=CYAN, align="center")
-    _text(surf, f"min {t_min}°", cx, icon_y + ICON_SZ + 38, size=16, color=LGRAY, align="center")
+    _text(surf, f"max {t_max}°", cx, icon_y + ICON_SZ + 18, size=28, color=CYAN,  align="center")
+    _text(surf, f"min {t_min}°", cx, icon_y + ICON_SZ + 52, size=24, color=LGRAY, align="center")
 
 
 def _draw_ticker(surf: pygame.Surface, headlines: list[str]) -> None:
