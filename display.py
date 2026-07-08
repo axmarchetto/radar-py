@@ -219,7 +219,7 @@ def draw_strip_debug_label(surf: pygame.Surface, index: int, label: str) -> None
 def draw_strip0_header(surf: pygame.Surface, config: dict,
                        n_total: int, n_visible: int, now_str: str,
                        blink_on: bool = True) -> None:
-    mid_y = STRIP_H // 2 - 10
+    mid_y = STRIP_H // 2
     blit_text(surf, "ADS-B  RADAR", MARGIN_X + 22, mid_y - 2, size=36, bold=True, color=CYAN)
     ref   = config.get("Punto_di_riferimento", "Riferimento")
     rlat  = config["Punto_rif_lat"]
@@ -287,7 +287,7 @@ def draw_strip23_closest(surf: pygame.Surface, principal: dict | None,
 
     # ── Column 2: Flight number ──
     display_cs = iata_flight or cs or "—"
-    blit_text(surf, display_cs, COL2_CX, mid_y - 40, size=90, bold=True, color=WHITE, align="center")
+    blit_text(surf, display_cs, COL2_CX, mid_y - 40, size=90, color=WHITE, align="center")
 
     # Vertical divider after col 2
     pygame.draw.line(surf, GRAY, (COL1_W + COL2_W, panel_y + 10), (COL1_W + COL2_W, panel_y + panel_h - 10), 1)
