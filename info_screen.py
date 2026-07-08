@@ -275,7 +275,7 @@ _ticker_text = ""
 def _build_ticker(headlines: list[str]) -> pygame.Surface | None:
     if not headlines:
         return None
-    f   = _font(30)
+    f   = _font(60)
     sep = f.render("  »»  ", True, CYAN)
 
     text_surfs = [f.render(h, True, WHITE) for h in headlines]
@@ -287,7 +287,7 @@ def _build_ticker(headlines: list[str]) -> pygame.Surface | None:
 
     x = 0
     for ts in text_surfs:
-        sep_surf = f.render("  »»  ", True, CYAN)
+        sep_surf = _font(60).render("  »»  ", True, CYAN)
         ticker.blit(sep_surf, (x, (line_h - sep_surf.get_height()) // 2))
         x += sep_surf.get_width()
         ticker.blit(ts, (x, (line_h - ts.get_height()) // 2))
@@ -428,8 +428,8 @@ def _draw_ticker(surf: pygame.Surface, headlines: list[str]) -> None:
     surf.set_clip(clip_rect)
 
     if not headlines:
-        _text(surf, "recupero notizie...", label_w + 20, mid_y - 15,
-              size=30, color=GRAY)
+        _text(surf, "recupero notizie...", label_w + 20, mid_y - 30,
+              size=60, color=GRAY)
     else:
         _update_ticker(headlines)
         if _ticker_surf:
