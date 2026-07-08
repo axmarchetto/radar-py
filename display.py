@@ -30,26 +30,14 @@ RED    = (220,  50,  50)
 
 # ── Layout ────────────────────────────────────────────────────────────────────
 W, H       = 1024, 600
-N_STRIPS   = 8
-STRIP_H    = H // N_STRIPS   # 75 px each
+N_STRIPS   = 6
+STRIP_H    = H // N_STRIPS   # 100 px each
 DIVIDER_W  = 2
 MARGIN_X   = 14
 REFRESH_MS = 3000
 
-CLOSEST_STRIP_START = 1   # strips 2+3 (0-indexed 1+2), y=75..224
-CLOSEST_PANEL_H     = 2 * STRIP_H   # 150 px
-
-AC_STRIP_START = 6        # strips 7+8 (0-indexed 6+7), y=450..599
-AC_PANEL_H     = 2 * STRIP_H   # 150 px
-
-# Aircraft list column x positions (scaled for 1024 px width)
-COL_CS   =  14
-COL_DEP  = 140
-COL_ARR  = 368
-COL_PCT  = 596
-COL_ALT  = 660
-COL_GS   = 800
-COL_DIST = 912
+CLOSEST_STRIP_START = 1   # strips 2+3 (0-indexed 1+2), y=100..300
+CLOSEST_PANEL_H     = 2 * STRIP_H   # 200 px
 
 # ── Airline logo cache ────────────────────────────────────────────────────────
 LOGOS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logos")
@@ -252,14 +240,14 @@ def draw_strip0_header(surf: pygame.Surface, config: dict,
 
 def draw_strip23_closest(surf: pygame.Surface, principal: dict | None,
                          config: dict) -> None:
-    """Strips 2+3 merged (150 px): 3-column layout — logo | flight number | airline+type."""
+    """Strips 2+3 merged (200 px): 3-column layout — logo | flight number | airline+type."""
     panel_y = CLOSEST_STRIP_START * STRIP_H
     panel_h = CLOSEST_PANEL_H
 
     if principal is None:
         cy = panel_y + panel_h // 2
         blit_text(surf, "nessun volo con dati disponibili nel raggio principale",
-                  W // 2, cy - 10, size=24, color=GRAY, align="center")
+                  W // 2, cy - 10, size=30, color=GRAY, align="center")
         return
 
     ac  = principal
@@ -273,7 +261,7 @@ def draw_strip23_closest(surf: pygame.Surface, principal: dict | None,
     airline_name = airline.get("name", "")
 
     # Column boundaries
-    COL1_W = 210        # logo column
+    COL1_W = 220        # logo column
     COL2_W = W // 2 - COL1_W   # flight number column — right edge aligns with strip 4 divider
     # COL3 takes the rest
 
@@ -284,7 +272,7 @@ def draw_strip23_closest(surf: pygame.Surface, principal: dict | None,
     mid_y = panel_y + panel_h // 2
 
     # ── Column 1: Logo ──
-    LOGO_SIZE = 140
+    LOGO_SIZE = 180
     logo_x = COL1_CX - LOGO_SIZE // 2
     logo_y = panel_y + (panel_h - LOGO_SIZE) // 2
     logo = get_logo(airline_iata, LOGO_SIZE)
@@ -292,26 +280,26 @@ def draw_strip23_closest(surf: pygame.Surface, principal: dict | None,
         surf.blit(logo, (logo_x, logo_y))
     elif airline_iata not in ("?", "..."):
         pygame.draw.rect(surf, GRAY, (logo_x, logo_y, LOGO_SIZE, LOGO_SIZE), 1)
-        blit_text(surf, airline_iata, COL1_CX, mid_y - 10, size=30, color=GRAY, align="center")
+        blit_text(surf, airline_iata, COL1_CX, mid_y - 12, size=38, color=GRAY, align="center")
 
     # Vertical divider after col 1
     pygame.draw.line(surf, GRAY, (COL1_W, panel_y + 10), (COL1_W, panel_y + panel_h - 10), 1)
 
     # ── Column 2: Flight number ──
     display_cs = iata_flight or cs or "—"
-    blit_text(surf, display_cs, COL2_CX, mid_y - 28, size=69, bold=True, color=WHITE, align="center")
+    blit_text(surf, display_cs, COL2_CX, mid_y - 40, size=90, bold=True, color=WHITE, align="center")
 
     # Vertical divider after col 2
     pygame.draw.line(surf, GRAY, (COL1_W + COL2_W, panel_y + 10), (COL1_W + COL2_W, panel_y + panel_h - 10), 1)
 
     # ── Column 3: Airline name + aircraft type ──
     if airline_name and airline_name != "?":
-        blit_text(surf, airline_name, COL3_CX, mid_y - 28, size=39, bold=True, color=CYAN, align="center")
+        blit_text(surf, airline_name, COL3_CX, mid_y - 38, size=50, bold=True, color=CYAN, align="center")
 
     if ac_type and ac_type not in ("?", "..."):
-        blit_text(surf, ac_type, COL3_CX, mid_y + 10, size=30, color=LGRAY, align="center")
+        blit_text(surf, ac_type, COL3_CX, mid_y + 18, size=38, color=LGRAY, align="center")
     elif ac_type == "...":
-        blit_text(surf, "...", COL3_CX, mid_y + 10, size=30, color=GRAY, align="center")
+        blit_text(surf, "...", COL3_CX, mid_y + 18, size=38, color=GRAY, align="center")
 
 
 def find_principal_aircraft(aircraft_list: list[dict], config: dict) -> dict | None:
@@ -362,9 +350,9 @@ def draw_strip3_airports(surf: pygame.Surface, principal: dict | None, config: d
     dep_name = (orig.get("name") or "").strip()
 
     blit_text(surf, dep_iata if dep_iata not in ("?", "...") else "—",
-              MARGIN_X, y0 + 8, size=45, color=WHITE)
+              MARGIN_X, y0 + 10, size=58, color=WHITE)
     if dep_name and dep_name != "?":
-        blit_text(surf, dep_name[:22], MARGIN_X, y0 + 55, size=20, color=LGRAY)
+        blit_text(surf, dep_name[:22], MARGIN_X, y0 + 70, size=24, color=LGRAY)
 
     # ── Arrival (right side of left column) ──
     arr_iata = dest["iata"]
@@ -372,22 +360,22 @@ def draw_strip3_airports(surf: pygame.Surface, principal: dict | None, config: d
 
     arr_right = COL_MID - MARGIN_X
     blit_text(surf, arr_iata if arr_iata not in ("?", "...") else "—",
-              arr_right, y0 + 8, size=45, color=WHITE, align="right")
+              arr_right, y0 + 10, size=58, color=WHITE, align="right")
     if arr_name and arr_name != "?":
-        blit_text(surf, arr_name[:22], arr_right, y0 + 55, size=20, color=LGRAY, align="right")
+        blit_text(surf, arr_name[:22], arr_right, y0 + 70, size=24, color=LGRAY, align="right")
 
     # ── Right column: closest approach to reference point ──
     ref_name = config.get("Punto_di_riferimento", "Casa")
     ca = closest_approach(ac, config["Punto_rif_lat"], config["Punto_rif_lon"])
     rcx = COL_MID + (W - COL_MID) // 2
-    blit_text(surf, f"sorvolo {ref_name}", rcx, y0 + 8, size=20, color=LGRAY, align="center")
+    blit_text(surf, f"sorvolo {ref_name}", rcx, y0 + 10, size=24, color=LGRAY, align="center")
     if ca:
         mins, _ = ca
         h, m = divmod(int(mins), 60)
         time_str = f"{h}h {m:02d}m" if h else f"{m} min"
-        blit_text(surf, time_str, rcx, y0 + 32, size=39, color=CYAN, align="center")
+        blit_text(surf, time_str, rcx, y0 + 40, size=50, color=CYAN, align="center")
     else:
-        blit_text(surf, "—", rcx, y0 + 32, size=39, color=GRAY, align="center")
+        blit_text(surf, "—", rcx, y0 + 40, size=50, color=GRAY, align="center")
 
 
 def _track_to_compass(deg: float) -> str:
@@ -447,13 +435,13 @@ def draw_strip4_flightdata(surf: pygame.Surface, principal: dict | None,
 
     n     = len(boxes)
     col_w = W // n
-    lbl_s = 20
-    val_s = 33
+    lbl_s = 26
+    val_s = 46
 
     for i, (label, value, color) in enumerate(boxes):
         cx = i * col_w + col_w // 2
         blit_text(surf, label, cx, y0 + 10, size=lbl_s, color=LGRAY, align="center")
-        blit_text(surf, value, cx, y0 + 30, size=val_s, color=color, align="center")
+        blit_text(surf, value, cx, y0 + 38, size=val_s, color=color, align="center")
 
         # vertical separator between boxes
         if i > 0:
@@ -487,21 +475,21 @@ def draw_strip5_progress(surf: pygame.Surface, principal: dict | None) -> None:
                 pct_val = min(flown / total * 100, 100)
 
     # Layout
-    LABEL_W  = 60
+    LABEL_W  = 75
     BAR_X    = MARGIN_X + LABEL_W + 12
     BAR_W    = W - BAR_X - LABEL_W - MARGIN_X - 12
-    BAR_H    = 28
+    BAR_H    = 38
     BAR_Y    = y0 + (STRIP_H - BAR_H) // 2
 
     # Departure label (left)
     dep_label = dep_iata if dep_iata not in ("?", "...") else "—"
-    blit_text(surf, dep_label, MARGIN_X + LABEL_W, BAR_Y + BAR_H // 2 - 10,
-              size=27, bold=True, color=WHITE, align="right")
+    blit_text(surf, dep_label, MARGIN_X + LABEL_W, BAR_Y + BAR_H // 2 - 14,
+              size=34, bold=True, color=WHITE, align="right")
 
     # Arrival label (right)
     arr_label = arr_iata if arr_iata not in ("?", "...") else "—"
-    blit_text(surf, arr_label, W - MARGIN_X - LABEL_W, BAR_Y + BAR_H // 2 - 10,
-              size=27, bold=True, color=WHITE)
+    blit_text(surf, arr_label, W - MARGIN_X - LABEL_W, BAR_Y + BAR_H // 2 - 14,
+              size=34, bold=True, color=WHITE)
 
     # Bar background
     pygame.draw.rect(surf, GRAY, (BAR_X, BAR_Y, BAR_W, BAR_H), 1)
@@ -517,61 +505,19 @@ def draw_strip5_progress(surf: pygame.Surface, principal: dict | None) -> None:
         # Percentage text centred on bar
         pct_text = f"{pct_val:.0f}%"
         txt_x    = BAR_X + BAR_W // 2
-        txt_y    = BAR_Y + BAR_H // 2 - 9
+        txt_y    = BAR_Y + BAR_H // 2 - 12
         txt_color = BLACK if filled > BAR_W // 2 else WHITE
-        blit_text(surf, pct_text, txt_x, txt_y, size=24, bold=True,
+        blit_text(surf, pct_text, txt_x, txt_y, size=30, bold=True,
                   color=txt_color, align="center")
     else:
-        blit_text(surf, "—", BAR_X + BAR_W // 2, BAR_Y + BAR_H // 2 - 9,
-                  size=24, color=GRAY, align="center")
+        blit_text(surf, "—", BAR_X + BAR_W // 2, BAR_Y + BAR_H // 2 - 12,
+                  size=30, color=GRAY, align="center")
 
-
-def draw_strip67_aircraft(surf: pygame.Surface, aircraft_list: list[dict],
-                          config: dict) -> None:
-    """Strips 7+8 merged (120 px): aircraft table."""
-    ref_lat = config["Punto_rif_lat"]
-    ref_lon = config["Punto_rif_lon"]
-    y0 = AC_STRIP_START * STRIP_H + DIVIDER_W + 4
-
-    hs = 21
-    hy = y0
-    blit_text(surf, "CALLSIGN", COL_CS,   hy, size=hs, color=LGRAY, bold=True)
-    blit_text(surf, "PARTENZA", COL_DEP,  hy, size=hs, color=LGRAY, bold=True)
-    blit_text(surf, "ARRIVO",   COL_ARR,  hy, size=hs, color=LGRAY, bold=True)
-    blit_text(surf, "%",        COL_PCT,  hy, size=hs, color=LGRAY, bold=True)
-    blit_text(surf, "ALT ft",   COL_ALT,  hy, size=hs, color=LGRAY, bold=True)
-    blit_text(surf, "GS kt",    COL_GS,   hy, size=hs, color=LGRAY, bold=True)
-    blit_text(surf, "DIST km",  COL_DIST, hy, size=hs, color=LGRAY, bold=True)
-
-    sep_y = hy + hs + 4
-    pygame.draw.line(surf, GRAY, (MARGIN_X, sep_y), (W - MARGIN_X, sep_y), 1)
-
-    row_h    = 30
-    row_s    = 23
-    max_rows = (AC_PANEL_H - (sep_y - y0) - 10) // row_h
-
-    for i, ac in enumerate(aircraft_list[:max_rows]):
-        ry = sep_y + 5 + i * row_h
-        cs = (ac.get("flight") or "").strip() or "—"
-        callsign = cs if cs != "—" else ""
-        orig, dest = routes.get_route(callsign) if callsign else (
-            routes._MISSING, routes._MISSING)
-
-        d = dist_from_ref(ac, ref_lat, ref_lon)
-        row_color = GREEN if d < 30 else (YELLOW if d < 80 else WHITE)
-
-        blit_text(surf, cs,               COL_CS,   ry, size=row_s, color=row_color, bold=True)
-        blit_text(surf, fmt_airport(orig), COL_DEP,  ry, size=row_s, color=WHITE)
-        blit_text(surf, fmt_airport(dest), COL_ARR,  ry, size=row_s, color=WHITE)
-        blit_text(surf, flight_pct(ac),   COL_PCT,  ry, size=row_s, color=LGRAY)
-        blit_text(surf, fmt_alt(ac),      COL_ALT,  ry, size=row_s, color=LGRAY)
-        blit_text(surf, fmt_speed(ac),    COL_GS,   ry, size=row_s, color=LGRAY)
-        blit_text(surf, fmt_dist(ac, ref_lat, ref_lon), COL_DIST, ry, size=row_s, color=LGRAY)
 
 
 def draw_dividers(surf: pygame.Surface) -> None:
-    """White lines between strips — skip internal dividers of merged panels."""
-    merged_internal = {CLOSEST_STRIP_START + 1, AC_STRIP_START + 1}
+    """White lines between strips — skip internal divider of merged closest panel."""
+    merged_internal = {CLOSEST_STRIP_START + 1}
     for i in range(1, N_STRIPS):
         if i in merged_internal:
             continue
@@ -656,7 +602,6 @@ def main() -> None:
             draw_strip3_airports(surf, principal, config)
             draw_strip4_flightdata(surf, principal, config)
             draw_strip5_progress(surf, principal)
-            draw_strip67_aircraft(surf, aircraft_list, config)
             draw_dividers(surf)
 
         pygame.display.flip()
