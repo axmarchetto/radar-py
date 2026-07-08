@@ -479,7 +479,7 @@ def draw_strip5_progress(surf: pygame.Surface, principal: dict | None) -> None:
     BAR_X    = MARGIN_X + LABEL_W + 12
     BAR_W    = W - BAR_X - LABEL_W - MARGIN_X - 12
     BAR_H    = 76
-    BAR_Y    = y0 + (STRIP_H - BAR_H) // 2 + 10
+    BAR_Y    = y0 + (STRIP_H - BAR_H) // 2 + 20
 
     # Departure label (left)
     dep_label = dep_iata if dep_iata not in ("?", "...") else "—"
