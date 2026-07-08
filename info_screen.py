@@ -413,7 +413,7 @@ def _draw_ticker(surf: pygame.Surface, headlines: list[str]) -> None:
     global _ticker_x
 
     panel_h = TICKER_Y_BOT - TICKER_Y_TOP
-    mid_y   = TICKER_Y_TOP + panel_h // 2 + 10
+    mid_y   = TICKER_Y_TOP + panel_h // 2 + 50
 
     # Source label
     label_w = 80
