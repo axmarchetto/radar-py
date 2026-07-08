@@ -359,7 +359,7 @@ def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> N
 
     # ── TODAY (col 1+2) ──
     label_y  = WEATHER_Y_TOP + 10
-    _text(surf, "OGGI", C2 // 2, label_y, size=60, color=LGRAY, align="center")
+    _text(surf, "OGGI", C2 // 2, label_y, size=30, color=LGRAY, align="center")
 
     ICON_SZ = 160
     ICON_CX = C1 + 110
@@ -369,7 +369,7 @@ def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> N
     txt_x   = C1 + 240
     txt_y   = WEATHER_Y_TOP + 36
     _text(surf, f"{weather['temp']}°", txt_x, txt_y,       size=100, color=CYAN, align="left")
-    _text(surf, weather["desc"],       txt_x, txt_y + 110, size=24,  color=WHITE, align="left")
+    _text(surf, weather["desc"],       txt_x, txt_y + 110, size=48,  color=WHITE, align="left")
 
     details = [
         f"min {weather['temp_min']}°  max {weather['temp_max']}°",
@@ -377,7 +377,7 @@ def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> N
         f"Umidita' {weather['humidity']}%    Vento {weather['wind']} km/h",
     ]
     for i, txt in enumerate(details):
-        _text(surf, txt, txt_x, txt_y + 142 + i * 30, size=22, color=LGRAY, align="left")
+        _text(surf, txt, txt_x, txt_y + 165 + i * 50, size=44, color=LGRAY, align="left")
 
     # ── DOMANI (col 3) ──
     _draw_forecast_col(surf, C2, C3, "DOMANI",
@@ -399,21 +399,21 @@ def _draw_forecast_col(surf: pygame.Surface, x0: int, x1: int, label: str,
     cx      = x0 + col_w // 2
     panel_h = WEATHER_Y_BOT - WEATHER_Y_TOP
 
-    _text(surf, label, cx, WEATHER_Y_TOP + 10, size=60, color=LGRAY, align="center")
+    _text(surf, label, cx, WEATHER_Y_TOP + 10, size=30, color=LGRAY, align="center")
 
     ICON_SZ = 130
     icon_y  = WEATHER_Y_TOP + 50
     draw_weather_icon(surf, cx, icon_y + ICON_SZ // 2, icon, ICON_SZ)
 
-    _text(surf, f"max {t_max}°", cx, icon_y + ICON_SZ + 18, size=28, color=CYAN,  align="center")
-    _text(surf, f"min {t_min}°", cx, icon_y + ICON_SZ + 52, size=24, color=LGRAY, align="center")
+    _text(surf, f"max {t_max}°", cx, icon_y + ICON_SZ + 18, size=56, color=CYAN,  align="center")
+    _text(surf, f"min {t_min}°", cx, icon_y + ICON_SZ + 82, size=48, color=LGRAY, align="center")
 
 
 def _draw_ticker(surf: pygame.Surface, headlines: list[str]) -> None:
     global _ticker_x
 
     panel_h = TICKER_Y_BOT - TICKER_Y_TOP
-    mid_y   = TICKER_Y_TOP + panel_h // 2
+    mid_y   = TICKER_Y_TOP + panel_h // 2 + 10
 
     # Source label
     label_w = 80
