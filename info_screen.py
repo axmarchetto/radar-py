@@ -370,7 +370,7 @@ def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> N
 
     # ── TODAY (col 1+2) ──
     label_y  = WEATHER_Y_TOP + 10
-    _text(surf, "OGGI", C2 // 2, label_y, size=30, color=LGRAY, align="center")
+    _text(surf, "OGGI", C2 // 2, label_y, size=38, color=LGRAY, align="center")
 
     ICON_SZ = 160
     ICON_CX = C1 + 110
@@ -411,7 +411,7 @@ def _draw_forecast_col(surf: pygame.Surface, x0: int, x1: int, label: str,
     cx      = x0 + col_w // 2
     panel_h = WEATHER_Y_BOT - WEATHER_Y_TOP
 
-    _text(surf, label, cx, WEATHER_Y_TOP + 10, size=30, color=LGRAY, align="center")
+    _text(surf, label, cx, WEATHER_Y_TOP + 10, size=38, color=LGRAY, align="center")
 
     ICON_SZ = 130
     icon_y  = WEATHER_Y_TOP + 50
