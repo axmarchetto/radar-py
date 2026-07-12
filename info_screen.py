@@ -369,18 +369,20 @@ def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> N
         pygame.draw.line(surf, GRAY, (x, WEATHER_Y_TOP + 10), (x, WEATHER_Y_BOT - 10), 1)
 
     # ── TODAY (col 1+2) ──
-    label_y  = WEATHER_Y_TOP + 10
-    _text(surf, "OGGI", C2 // 2, label_y, size=38, color=LGRAY, align="center")
+    txt_x   = C1 + 40
+    label_y = WEATHER_Y_TOP + 10
+    _text(surf, "OGGI", txt_x, label_y, size=38, color=LGRAY, align="left")
 
-    ICON_SZ = 160
-    ICON_CX = C1 + 110
-    ICON_CY = WEATHER_Y_TOP + 80 + ICON_SZ // 2
+    # Icon tucked into the top-right corner of the box, out of the text column.
+    ICON_SZ = 130
+    ICON_MARGIN = 25
+    ICON_CX = C2 - ICON_MARGIN - ICON_SZ // 2
+    ICON_CY = WEATHER_Y_TOP + 15 + ICON_SZ // 2
     draw_weather_icon(surf, ICON_CX, ICON_CY, weather["icon"], ICON_SZ)
 
-    txt_x   = C1 + 240
     txt_y   = WEATHER_Y_TOP + 36
     _text(surf, f"{weather['temp']}°", txt_x, txt_y + 35,   size=100, color=CYAN, align="left")
-    _text(surf, weather["desc"],       txt_x, txt_y + 110, size=48,  color=WHITE, align="left")
+    _text(surf, weather["desc"],       txt_x, txt_y + 120, size=48,  color=WHITE, align="left")
 
     details = [
         f"min {weather['temp_min']}°  max {weather['temp_max']}°",
@@ -389,7 +391,7 @@ def _draw_weather(surf: pygame.Surface, weather: dict | None, config: dict) -> N
         f"Vento {weather['wind']} km/h",
     ]
     for i, txt in enumerate(details):
-        _text(surf, txt, txt_x, txt_y + 155 + i * 42, size=44, color=LGRAY, align="left")
+        _text(surf, txt, txt_x, txt_y + 165 + i * 42, size=44, color=LGRAY, align="left")
 
     # ── DOMANI (col 3) ──
     _draw_forecast_col(surf, C2, C3, "DOMANI",
